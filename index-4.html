@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>Any Converter</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:#f0f2f5;color:#1f1f1f;overflow:hidden}
+button,label,select,input{font:inherit}
+button,label{cursor:pointer}
+#splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0b57d0,#0043a6);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;color:#fff;transition:opacity .45s}
+.splash-logo{margin-bottom:20px;animation:pulse 1.5s infinite ease-in-out}.splash-title{font-size:32px;font-weight:700;letter-spacing:1px}
+@keyframes pulse{50%{transform:scale(1.05)}}
+.app-header{height:65px;background:#fff;color:#1f1f1f;padding:15px 20px;font-size:22px;font-weight:500;position:fixed;top:0;width:100%;z-index:10;box-shadow:0 1px 3px #00000014;display:flex;align-items:center;gap:12px}
+.logo-svg{width:32px;height:32px}
+#dashboard-view{margin-top:65px;height:calc(100vh - 145px);overflow-y:auto;padding:16px 16px 30px}
+.section-title{font-size:14px;color:#444746;margin-bottom:12px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.history-item{background:#fff;padding:12px;border-radius:16px;display:flex;align-items:center;margin-bottom:12px;box-shadow:0 1px 2px #0000001a;position:relative;cursor:pointer}
+.history-item:active{background:#e8eaed;transform:scale(.985)}
+.history-item.selected{background:#e8f0fe;border:2px solid #0b57d0;padding:10px}.selection-check{width:28px;height:28px;border-radius:50%;border:2px solid #c4c7c5;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;font-size:15px;color:#fff}.history-item.selected .selection-check{background:#0b57d0;border-color:#0b57d0}.selection-toolbar{display:none;margin-left:auto;align-items:center;gap:8px}.selection-toolbar.show{display:flex}.selection-count{font-size:14px;color:#5f6368;font-weight:500}.selection-share{background:#0b57d0;color:#fff;border:0;border-radius:22px;padding:9px 14px;font-size:14px;font-weight:500}.selection-cancel{background:none;border:0;color:#5f6368;font-size:14px;padding:8px}
+.history-thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;background:#f0f2f5;margin-right:16px;flex-shrink:0;border:1px solid #e0e0e0}
+.history-details{flex:1;overflow:hidden;pointer-events:none}
+.history-name{font-weight:500;font-size:16px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-meta{font-size:13px;color:#5f6368}
+.empty-state{text-align:center;padding:70px 20px;color:#5f6368}.empty-state .icon{font-size:50px;margin-bottom:15px}
+.menu-btn{background:none;border:0;font-size:22px;padding:10px;color:#5f6368;border-radius:50%;z-index:2}
+.menu-dropdown{display:none;position:absolute;right:20px;top:55px;background:#fff;box-shadow:0 4px 12px #00000026;border-radius:10px;overflow:hidden;z-index:60;min-width:170px}
+.menu-dropdown.show{display:block}.menu-option{padding:14px 16px;font-size:15px;display:flex;gap:12px}.menu-option:active{background:#f1f3f4}.text-danger{color:#d93025}
+.bottom-bar{position:fixed;bottom:0;width:100%;background:#fff;display:flex;justify-content:space-evenly;padding:12px 10px 24px;box-shadow:0 -1px 8px #0000000f;z-index:10;border-top:1px solid #e8eaed}
+.action-btn{flex:1;max-width:160px;background:#e8f0fe;color:#0b57d0;padding:14px 8px;margin:0 8px;border-radius:100px;text-align:center;font-weight:500;font-size:14px;display:flex;justify-content:center;align-items:center;gap:8px}
+.action-btn.camera{background:#0b57d0;color:#fff}
+input[type=file]{display:none}
+.file-info{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:14px;padding:14px;margin:0 0 18px;font-size:14px;color:#444746}.file-info strong{color:#1f1f1f}.file-info-row{display:flex;justify-content:space-between;gap:12px;margin:5px 0}.result-info{display:none}.result-preview{display:none;max-width:92%;max-height:34vh;margin:12px auto;border-radius:12px;object-fit:contain;background:#fff}.rename-input{width:100%;padding:14px;border:1px solid #dadce0;border-radius:12px;font-size:16px;margin:10px 0 16px;outline:0}
+.full-screen-view{position:fixed;inset:0;background:#f0f2f5;z-index:100;display:none;flex-direction:column;padding-top:60px;overflow-y:auto}
+.view-header{position:fixed;top:0;left:0;width:100%;height:60px;background:#fff;padding:10px 16px;display:flex;align-items:center;box-shadow:0 1px 3px #00000014;z-index:101}
+.back-btn{background:none;border:0;font-size:16px;font-weight:500;color:#444746;display:flex;align-items:center;gap:6px;padding:8px}
+#preview,#view-preview-img{width:92%;max-height:40vh;object-fit:contain;margin:20px auto;display:block;border-radius:12px;background:#fff}
+.conversion-controls{padding:24px;background:#fff;border-radius:24px 24px 0 0;flex:1;box-shadow:0 -2px 10px #0000000d}
+select,.num-input{width:100%;padding:16px;margin-bottom:20px;border-radius:12px;border:1px solid #dadce0;font-size:16px;font-weight:500;color:#1f1f1f;background:#f8f9fa;outline:0}
+.btn-group{display:flex;flex-direction:column;gap:12px}.primary-btn{width:100%;background:#0b57d0;color:#fff;border:0;padding:16px;border-radius:100px;font-size:15px;font-weight:500;display:flex;justify-content:center;align-items:center;gap:8px}.share-btn{background:#1ea362}
+.viewer-toolbar{position:fixed;bottom:0;left:0;width:100%;background:#1f1f1f;display:flex;justify-content:space-around;padding:14px 8px 24px;border-top:1px solid #333;z-index:101}
+.toolbar-btn{background:none;border:0;color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:500}.toolbar-btn svg{width:24px;height:24px;fill:currentColor}.resize-icon{color:#ff0f7b!important}
+#resize-modal{display:none;position:fixed;inset:0;background:#0009;z-index:200;justify-content:center;align-items:center;padding:20px}
+.modal-content{background:#fff;width:100%;max-width:400px;border-radius:24px;padding:24px;box-shadow:0 10px 40px #0003}
+.gradient-btn{background:linear-gradient(135deg,#ff0f7b,#f89b29);box-shadow:0 4px 15px #ff0f7b4d;font-weight:700}
+.toast{position:fixed;left:50%;bottom:105px;transform:translateX(-50%) translateY(20px);background:#202124;color:#fff;padding:12px 18px;border-radius:30px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:500;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.viewer-body{flex:1;display:flex;justify-content:center;align-items:center;padding:75px 20px 100px;flex-direction:column;overflow:auto}
+#view-preview-img{max-height:70vh;max-width:100%;margin:0;box-shadow:none;background:transparent}
+#pdf-placeholder{text-align:center;color:#fff;display:none}.pdf-icon{font-size:72px;margin-bottom:20px}
+.pdf-name{font-size:20px;font-weight:500;word-break:break-word;max-width:90vw}
+.spinner{display:none;width:22px;height:22px;border:3px solid #ffffff66;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:360px){.action-btn{margin:0 4px;font-size:13px}.splash-title{font-size:28px}}
+</style>
+</head>
+<body>
+
+<div id="splash-screen">
+  <div class="splash-logo">
+    <svg viewBox="0 0 512 512" width="120" height="120">
+      <defs>
+        <linearGradient id="baseWhite" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#eef1f5"/></linearGradient>
+        <linearGradient id="gradLeft" x1="100%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#FF0F7B"/><stop offset="100%" stop-color="#F89B29"/></linearGradient>
+        <linearGradient id="gradRight" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4776E6"/><stop offset="100%" stop-color="#8E54E9"/></linearGradient>
+      </defs>
+      <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#baseWhite)"/>
+      <g transform="rotate(-15 200 256)"><rect x="110" y="126" width="180" height="260" rx="40" fill="url(#gradLeft)" opacity=".85"/></g>
+      <g transform="rotate(15 312 256)"><rect x="222" y="126" width="180" height="260" rx="40" fill="url(#gradRight)" opacity=".85"/></g>
+      <circle cx="256" cy="256" r="64" fill="#fff"/>
+      <path d="M220 236h44v-12l28 18-28 18v-12h-44z" fill="url(#gradRight)"/>
+      <path d="M292 264h-44v-12l-28 18 28 18v-12h44z" fill="url(#gradLeft)"/>
+    </svg>
+  </div>
+  <div class="splash-title">Any Converter</div>
+</div>
+
+<div class="app-header">
+  <svg class="logo-svg" viewBox="0 0 512 512">
+    <defs><linearGradient id="hL" x1="100%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="#FF0F7B"/><stop offset="100%" stop-color="#F89B29"/></linearGradient><linearGradient id="hR"><stop offset="0%" stop-color="#4776E6"/><stop offset="100%" stop-color="#8E54E9"/></linearGradient></defs>
+    <rect x="32" y="32" width="448" height="448" rx="100" fill="#f1f3f4"/>
+    <g transform="rotate(-15 200 256)"><rect x="110" y="126" width="180" height="260" rx="40" fill="url(#hL)" opacity=".85"/></g>
+    <g transform="rotate(15 312 256)"><rect x="222" y="126" width="180" height="260" rx="40" fill="url(#hR)" opacity=".85"/></g>
+    <circle cx="256" cy="256" r="64" fill="#fff"/>
+    <path d="M220 236h44v-12l28 18-28 18v-12h-44z" fill="#4776E6"/><path d="M292 264h-44v-12l-28 18 28 18v-12h44z" fill="#FF0F7B"/>
+  </svg>
+  <span id="app-title">Any Converter</span>
+  <div id="selection-toolbar" class="selection-toolbar">
+    <span id="selection-count" class="selection-count">0 selected</span>
+    <button class="selection-share" onclick="shareSelectedFiles()">📤 Share</button>
+    <button class="selection-cancel" onclick="clearSelection()">Cancel</button>
+  </div>
+</div>
+
+<div id="dashboard-view">
+  <div class="section-title">Recent Files</div>
+  <div id="history-container"></div>
+</div>
+
+<div class="bottom-bar">
+  <label class="action-btn" for="fileInput">🖼️ Gallery</label>
+  <label class="action-btn" for="fileBrowser">📁 Files</label>
+  <label class="action-btn camera" for="cameraInput">📷 Camera</label>
+  <input type="file" id="fileInput" accept="image/*">
+  <input type="file" id="fileBrowser" accept="image/*,application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.rtf">
+  <input type="file" id="cameraInput" accept="image/*" capture="environment">
+</div>
+
+<div id="conversion-view" class="full-screen-view">
+  <div class="view-header">
+    <button class="back-btn" onclick="closeView('conversion-view')">← Back</button>
+  </div>
+  <img id="preview" alt="Preview">
+  <div class="conversion-controls">
+    <div id="original-info" class="file-info"></div>
+    <div id="result-info" class="file-info result-info"></div>
+    <h3 style="margin-bottom:16px;font-size:18px;font-weight:500">Select Format</h3>
+    <select id="formatSelect">
+      <option value="jpeg">Convert to JPG</option>
+      <option value="png">Convert to PNG</option>
+      <option value="pdf">Convert to PDF</option>
+    </select>
+    <div class="btn-group">
+      <button id="convertBtn" class="primary-btn" onclick="handleAction('preview')">⚙️ Convert & Preview</button>
+      <button id="downloadBtn" class="primary-btn" style="display:none" onclick="saveCurrentResult()">💾 Save to Device</button>
+      <button id="shareBtn" class="primary-btn share-btn" style="display:none" onclick="shareCurrentResult()">📤 Share</button>
+      <button id="conversionResizeBtn" class="primary-btn gradient-btn" style="display:none" onclick="openConversionResizeModal()">↔️ Resize / Compress</button>
+    </div>
+  </div>
+</div>
+
+<div id="file-viewer-view" class="full-screen-view" style="background:#121212;padding-bottom:0">
+  <div class="view-header" style="background:#1f1f1f;border-bottom:1px solid #333">
+    <button class="back-btn" style="color:#fff" onclick="closeView('file-viewer-view')">← Back</button>
+  </div>
+  <div class="viewer-body">
+    <div id="viewer-file-info" class="file-info" style="width:92%;max-width:600px;background:#1f1f1f;color:#fff;border-color:#333"></div>
+    <img id="view-preview-img" alt="File preview">
+    <div id="pdf-placeholder">
+      <div class="pdf-icon">📄</div>
+      <div id="pdf-view-name" class="pdf-name">Document.pdf</div>
+      <button id="open-pdf-btn" class="primary-btn" style="margin-top:20px;width:auto;padding:12px 30px">Open Full PDF</button>
+    </div>
+  </div>
+  <div class="viewer-toolbar">
+    <button class="toolbar-btn resize-icon" onclick="openResizeModal()">↔️<span>Resize Size</span></button>
+    <button class="toolbar-btn" onclick="shareFromViewer()">📤<span>Share</span></button>
+    <button class="toolbar-btn" onclick="renameFromViewer()">✏️<span>Rename</span></button>
+    <button class="toolbar-btn" style="color:#ff5252" onclick="deleteFromViewer()">🗑️<span>Delete</span></button>
+  </div>
+</div>
+
+<div id="resize-modal">
+  <div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="font-size:22px">Resize File</h3>
+      <button onclick="closeView('resize-modal')" style="background:none;border:0;font-size:24px;color:#888">✕</button>
+    </div>
+    <p style="color:#5f6368;margin-bottom:15px;font-size:14px;line-height:1.4">Enter a percentage. The resized result will be previewed first. Nothing is downloaded automatically.</p>
+    <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:8px">Target Size Percentage (%)</label>
+    <input type="number" id="resize-input" class="num-input" value="50" min="1" max="100">
+    <button class="primary-btn gradient-btn" onclick="applyResize()">✨ APPLY RESIZE</button>
+  </div>
+</div>
+
+<div id="rename-modal" style="display:none;position:fixed;inset:0;background:#0009;z-index:300;justify-content:center;align-items:center;padding:20px">
+  <div class="modal-content">
+    <h3 style="font-size:22px;margin-bottom:6px">Rename File</h3>
+    <p style="color:#5f6368;font-size:14px">The file extension will be kept automatically.</p>
+    <input id="rename-input" class="rename-input" type="text" autocomplete="off">
+    <div style="display:flex;gap:10px">
+      <button class="primary-btn" style="background:#e8eaed;color:#202124" onclick="closeView('rename-modal')">Cancel</button>
+      <button class="primary-btn" onclick="applyRename()">Save Name</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<canvas id="canvas" style="display:none"></canvas>
+
+<script>
+'use strict';
+
+let db = null;
+let currentActiveItemId = null;
+let currentViewerFile = null;
+let currentViewerObjectUrl = null;
+let lastGeneratedResult = null;
+let currentImg = new Image();
+let originalFileName = 'image';
+let selectedHistoryIds = new Set();
+let longPressTimer = null;
+let longPressTriggered = false;
+let longPressStartX = 0;
+let longPressStartY = 0;
+
+const DB_NAME = 'AnyConverterDB';
+const DB_VERSION = 1;
+const STORE = 'history';
+
+function $(id){ return document.getElementById(id); }
+
+function showToast(message){
+  const t=$('toast'); t.textContent=message; t.classList.add('show');
+  clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+function openDatabase(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open(DB_NAME,DB_VERSION);
+    request.onupgradeneeded=e=>{
+      const database=e.target.result;
+      if(!database.objectStoreNames.contains(STORE)){
+        database.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
+      }
+    };
+    request.onsuccess=e=>{db=e.target.result;resolve(db)};
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+function addHistory(item){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    const req=tx.objectStore(STORE).add(item);
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+function getAllHistory(){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>resolve(req.result.reverse());
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+function getHistory(id){
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction(STORE,'readonly').objectStore(STORE).get(Number(id));
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+function deleteHistory(id){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    const req=tx.objectStore(STORE).delete(Number(id));
+    req.onsuccess=()=>resolve();
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+function updateHistory(item){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    const req=tx.objectStore(STORE).put(item);
+    req.onsuccess=()=>resolve();
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+function formatBytes(bytes){
+  if(!bytes)return '0 B';
+  const units=['B','KB','MB','GB'];
+  const i=Math.floor(Math.log(bytes)/Math.log(1024));
+  return (bytes/Math.pow(1024,i)).toFixed(i?1:0)+' '+units[i];
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+async function loadHistory(){
+  const container=$('history-container');
+  const items=await getAllHistory();
+  if(!items.length){
+    container.innerHTML='<div class="empty-state"><div class="icon">📁</div><div>No recent files</div><div style="font-size:13px;margin-top:6px">Choose an image from Gallery or Camera to begin.</div></div>';
+    clearSelection();
+    return;
+  }
+  container.innerHTML='';
+  items.forEach(item=>{
+    const el=document.createElement('div');
+    el.className='history-item'+(selectedHistoryIds.has(Number(item.id))?' selected':'');
+    el.dataset.id=item.id;
+    el.innerHTML=`
+      <div class="selection-check">${selectedHistoryIds.has(Number(item.id))?'✓':''}</div>
+      <img class="history-thumb" src="${item.thumbnail || ''}" alt="">
+      <div class="history-details">
+        <div class="history-name">${escapeHtml(item.name)}</div>
+        <div class="history-meta">${escapeHtml(item.format)} • ${formatBytes(item.size)}</div>
+      </div>
+      <button class="menu-btn" aria-label="Delete">⋮</button>
+      <div class="menu-dropdown">
+        <div class="menu-option rename-option">✏️ Rename</div>
+        <div class="menu-option text-danger">🗑️ Delete</div>
+      </div>`;
+
+    // Tapping the circle must select/deselect the file, never open it.
+    const selectionCheck=el.querySelector('.selection-check');
+    selectionCheck.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+    selectionCheck.addEventListener('touchend',e=>e.stopPropagation(),{passive:true});
+    selectionCheck.addEventListener('click',e=>{
+      e.stopPropagation();
+      const id=Number(item.id);
+      if(selectedHistoryIds.size) toggleSelectedItem(id);
+      else enterSelectionMode(id);
+    });
+
+    el.querySelector('.menu-btn').addEventListener('click',e=>{
+      e.stopPropagation();
+      document.querySelectorAll('.menu-dropdown.show').forEach(x=>x.classList.remove('show'));
+      el.querySelector('.menu-dropdown').classList.toggle('show');
+    });
+    el.querySelector('.rename-option').addEventListener('click',e=>{
+      e.stopPropagation();
+      openRenameModal(item);
+    });
+    el.querySelector('.menu-option.text-danger').addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(confirm('Delete this file from recent history?')){
+        await deleteHistory(item.id);
+        selectedHistoryIds.delete(Number(item.id));
+        await loadHistory();
+      }
+    });
+
+    // Long press enters multi-select mode. Once selection mode is active,
+    // normal taps toggle files instead of opening them.
+    const beginLongPress=(e)=>{
+      if(e.target.closest('.menu-btn,.menu-dropdown')) return;
+      longPressTriggered=false;
+      if(e.touches && e.touches[0]){
+        longPressStartX=e.touches[0].clientX;
+        longPressStartY=e.touches[0].clientY;
+      }
+      clearTimeout(longPressTimer);
+      longPressTimer=setTimeout(()=>{
+        longPressTriggered=true;
+        enterSelectionMode(Number(item.id));
+      },550);
+    };
+    const cancelLongPress=()=>clearTimeout(longPressTimer);
+    el.addEventListener('touchstart',beginLongPress,{passive:true});
+    el.addEventListener('touchmove',e=>{
+      if(!e.touches || !e.touches[0]) return;
+      if(Math.abs(e.touches[0].clientX-longPressStartX)>12 || Math.abs(e.touches[0].clientY-longPressStartY)>12) cancelLongPress();
+    },{passive:true});
+    el.addEventListener('touchend',cancelLongPress,{passive:true});
+    el.addEventListener('touchcancel',cancelLongPress,{passive:true});
+    el.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      enterSelectionMode(Number(item.id));
+    });
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.menu-btn,.menu-dropdown')) return;
+      if(longPressTriggered){ longPressTriggered=false; return; }
+      if(selectedHistoryIds.size){
+        toggleSelectedItem(Number(item.id));
+      }else{
+        openHistoryItem(item.id);
+      }
+    });
+    container.appendChild(el);
+  });
+  updateSelectionToolbar();
+}
+function enterSelectionMode(id){
+  selectedHistoryIds.add(Number(id));
+  updateSelectedRows();
+  updateSelectionToolbar();
+  showToast('Selection mode: choose more files');
+}
+
+function toggleSelectedItem(id){
+  id=Number(id);
+  if(selectedHistoryIds.has(id)) selectedHistoryIds.delete(id);
+  else selectedHistoryIds.add(id);
+  updateSelectedRows();
+  updateSelectionToolbar();
+  if(!selectedHistoryIds.size) clearSelection();
+}
+
+function updateSelectedRows(){
+  document.querySelectorAll('.history-item').forEach(el=>{
+    const id=Number(el.dataset.id);
+    const selected=selectedHistoryIds.has(id);
+    el.classList.toggle('selected',selected);
+    const check=el.querySelector('.selection-check');
+    if(check) check.textContent=selected?'✓':'';
+  });
+}
+
+function updateSelectionToolbar(){
+  const toolbar=$('selection-toolbar');
+  const title=$('app-title');
+  const count=$('selection-count');
+  if(!toolbar || !count)return;
+  const n=selectedHistoryIds.size;
+  toolbar.classList.toggle('show',n>0);
+  count.textContent=n+' selected';
+  if(title) title.style.display=n?'none':'';
+}
+
+function clearSelection(){
+  selectedHistoryIds.clear();
+  updateSelectedRows();
+  updateSelectionToolbar();
+}
+
+async function shareSelectedFiles(){
+  if(!selectedHistoryIds.size)return;
+  if(!navigator.share){
+    showToast('Sharing is not supported on this device/browser.');
+    return;
+  }
+  try{
+    const files=[];
+    for(const id of selectedHistoryIds){
+      const item=await getHistory(id);
+      if(item && item.blob) files.push(new File([item.blob],item.name,{type:item.mime||item.blob.type||'application/octet-stream'}));
+    }
+    if(!files.length){showToast('No files selected.');return;}
+    if(navigator.canShare && !navigator.canShare({files})){
+      showToast('These files cannot be shared together.');
+      return;
+    }
+    await navigator.share({files,title:files.length===1?files[0].name:(files.length+' files')});
+    clearSelection();
+  }catch(err){
+    if(err.name!=='AbortError') showToast('Sharing failed.');
+  }
+}
+
+async function openHistoryItem(id){
+  const item=await getHistory(id);
+  if(!item)return;
+  currentActiveItemId=id;
+  currentViewerFile=item;
+  $('file-viewer-view').style.display='flex';
+  const info=document.getElementById('viewer-file-info');
+  if(info) info.innerHTML='<div class="file-info-row"><strong>File</strong><span>'+escapeHtml(item.name)+'</span></div><div class="file-info-row"><strong>Size</strong><span>'+formatBytes(item.size)+'</span></div>';
+  $('view-preview-img').style.display='none';
+  $('pdf-placeholder').style.display='none';
+
+  if(item.mime==='application/pdf' || item.format==='PDF'){
+    $('pdf-placeholder').style.display='block';
+    $('pdf-view-name').textContent=item.name;
+    $('open-pdf-btn').onclick=()=>openBlob(item.blob);
+    $('open-pdf-btn').textContent='Open Full PDF';
+    $('open-pdf-btn').ondblclick=()=>downloadBlob(item.blob,item.name);
+    let dl=$('pdf-download-btn');
+    if(!dl){ dl=document.createElement('button'); dl.id='pdf-download-btn'; dl.className='primary-btn'; dl.style.cssText='margin-top:12px;width:auto;padding:12px 30px;background:#1ea362'; $('pdf-placeholder').appendChild(dl); }
+    dl.textContent='💾 Download PDF';
+    dl.onclick=()=>{downloadBlob(item.blob,item.name);showToast('PDF download started.');};
+  }else{
+    const url=URL.createObjectURL(item.blob);
+    if(currentViewerObjectUrl)URL.revokeObjectURL(currentViewerObjectUrl);
+    currentViewerObjectUrl=url;
+    $('view-preview-img').src=url;
+    $('view-preview-img').style.display='block';
+  }
+}
+
+function openBlob(blob){
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url,'_blank');
+  if(!win){
+    // Android WebView/Chrome can block window.open. Use a temporary link instead.
+    const a=document.createElement('a');
+    a.href=url; a.target='_blank'; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+function forceDownloadBlob(blob,name){
+  try{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=name;
+    a.setAttribute('download',name);
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},1500);
+    return true;
+  }catch(e){
+    console.error(e);
+    return false;
+  }
+}
+
+function closeView(id){
+  $(id).style.display='none';
+  if(id==='file-viewer-view'){
+    currentActiveItemId=null;
+    currentViewerFile=null;
+  }
+  if(id==='resize-modal'){ $('resize-input').value=50; delete $('resize-modal').dataset.mode; }
+  if(id==='rename-modal'){ delete window.renameTargetId; }
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function dataURLToBlob(dataURL){
+  const parts=dataURL.split(',');
+  const mime=(parts[0].match(/:(.*?);/)||[])[1]||'application/octet-stream';
+  const bytes=atob(parts[1]);
+  const arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=reject;
+    img.src=src;
+  });
+}
+
+function makeThumbnail(img){
+  const c=document.createElement('canvas');
+  const size=160;
+  c.width=size;c.height=size;
+  const ctx=c.getContext('2d');
+  const scale=Math.max(size/img.width,size/img.height);
+  const w=img.width*scale,h=img.height*scale;
+  ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);
+  return c.toDataURL('image/jpeg',.72);
+}
+
+async function handleFileSelection(e){
+  const file=e.target.files && e.target.files[0];
+  e.target.value='';
+  if(!file)return;
+  try{
+    if(file.type==='application/pdf' || /\.pdf$/i.test(file.name)){
+      await addHistory({name:file.name,format:'PDF',mime:'application/pdf',size:file.size,blob:file,thumbnail:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#f0f2f5"/><text x="80" y="90" text-anchor="middle" font-size="64">📄</text></svg>'),date:Date.now()});
+      await loadHistory();
+      showToast('PDF added to Recent Files.');
+      return;
+    }
+    if(!file.type.startsWith('image/')){
+      await addHistory({name:file.name,format:(file.name.split('.').pop()||'FILE').toUpperCase(),mime:file.type||'application/octet-stream',size:file.size,blob:file,thumbnail:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#f0f2f5"/><text x="80" y="90" text-anchor="middle" font-size="50">📄</text></svg>'),date:Date.now()});
+      await loadHistory();
+      showToast('File added to Recent Files.');
+      return;
+    }
+    const data=await readFileAsDataURL(file);
+    const img=await loadImage(data);
+    currentImg=img;
+    window.currentOriginalSize=file.size;
+    originalFileName=(file.name||'image').replace(/\.[^/.]+$/,'')||'image';
+    $('preview').src=data;
+    $('original-info').innerHTML='<div class="file-info-row"><strong>File</strong><span>'+escapeHtml(file.name)+'</span></div><div class="file-info-row"><strong>Size</strong><span>'+formatBytes(file.size)+'</span></div><div class="file-info-row"><strong>Dimensions</strong><span>'+img.naturalWidth+' × '+img.naturalHeight+' px</span></div>';
+    $('result-info').style.display='none';
+    $('downloadBtn').style.display='none'; $('shareBtn').style.display='none'; $('conversionResizeBtn').style.display='none'; $('convertBtn').style.display='flex';
+    lastGeneratedResult=null;
+    $('formatSelect').value='jpeg';
+    $('conversion-view').style.display='flex';
+  }catch(err){console.error(err);showToast('Could not open the file.');}
+}
+
+function canvasFromImage(img,scale=1){
+  const c=$('canvas');
+  c.width=Math.max(1,Math.round(img.naturalWidth*scale||img.width*scale));
+  c.height=Math.max(1,Math.round(img.naturalHeight*scale||img.height*scale));
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.drawImage(img,0,0,c.width,c.height);
+  return c;
+}
+
+function canvasBlob(canvas,type,quality){
+  return new Promise(resolve=>canvas.toBlob(resolve,type,quality));
+}
+
+async function generateFile(){
+  const format=$('formatSelect').value;
+  const canvas=canvasFromImage(currentImg,1);
+  if(format==='pdf'){
+    if(!window.jspdf)throw new Error('PDF library is not available.');
+    const {jsPDF}=window.jspdf;
+    // Conversion does not resize or downscale the source image.
+    // The user decides if/when to resize later.
+    const w=canvas.width,h=canvas.height;
+    const pdf=new jsPDF(w>h?'l':'p','px',[w,h]);
+    // PNG keeps the source pixels without JPEG compression during conversion.
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h);
+    return {blob:pdf.output('blob'),name:originalFileName+'_converted.pdf',format:'PDF',mime:'application/pdf',thumbnail:makeThumbnail(currentImg),width:w,height:h};
+  }
+  const mime=format==='png'?'image/png':'image/jpeg';
+  const blob=await canvasBlob(canvas,mime,format==='png'?undefined:1.0);
+  return {blob,name:originalFileName+(format==='png'?'_converted.png':'_converted.jpg'),format:format==='png'?'PNG':'JPG',mime,thumbnail:makeThumbnail(currentImg),width:canvas.width,height:canvas.height};
+}
+
+function downloadBlob(blob,name){
+  if(!forceDownloadBlob(blob,name)){
+    openBlob(blob);
+    showToast('Download blocked. Use the browser save/download button.');
+  }
+}
+
+async function shareBlob(blob,name){
+  if(!navigator.share){
+    downloadBlob(blob,name);
+    showToast('Sharing is not supported here. File downloaded instead.');
+    return;
+  }
+  const file=new File([blob],name,{type:blob.type});
+  if(navigator.canShare && !navigator.canShare({files:[file]})){
+    downloadBlob(blob,name);
+    showToast('File sharing is not supported. File downloaded instead.');
+    return;
+  }
+  try{
+    await navigator.share({files:[file],title:name});
+  }catch(err){
+    if(err.name!=='AbortError')showToast('Sharing failed.');
+  }
+}
+
+async function handleAction(action){
+  const btn=$('convertBtn');
+  const old=btn.innerHTML;
+  btn.innerHTML='<span class="spinner" style="display:block"></span> Converting...';
+  btn.disabled=true;
+  try{
+    const result=await generateFile();
+    lastGeneratedResult=result;
+    $('result-info').innerHTML='<div class="file-info-row"><strong>Converted</strong><span>'+escapeHtml(result.name)+'</span></div><div class="file-info-row"><strong>Size</strong><span>'+formatBytes(result.blob.size)+'</span></div><div class="file-info-row"><strong>Before → After</strong><span>'+formatBytes(window.currentOriginalSize||0)+' → '+formatBytes(result.blob.size)+'</span></div><div class="file-info-row"><strong>Dimensions</strong><span>'+result.width+' × '+result.height+' px</span></div>';
+    $('result-info').style.display='block';
+    $('downloadBtn').style.display='flex'; $('shareBtn').style.display=navigator.share?'flex':'none'; $('conversionResizeBtn').style.display='flex';
+    btn.style.display='none';
+    if(result.format==='PDF'){
+      $('preview').style.display='none';
+      $('preview').dataset.pdf='1';
+      showToast('PDF converted. Preview it with Open PDF, then Save when ready.');
+      $('conversionResizeBtn').textContent='↔️ Resize / Compress PDF';
+    }else{
+      $('preview').style.display='block';
+      const url=URL.createObjectURL(result.blob);
+      if(window._conversionPreviewUrl)URL.revokeObjectURL(window._conversionPreviewUrl);
+      window._conversionPreviewUrl=url;
+      $('preview').src=url;
+      $('conversionResizeBtn').textContent='↔️ Resize / Compress';
+      showToast('Converted. Review it before saving.');
+    }
+  }catch(err){console.error(err);showToast('Conversion failed. Please try again.');}
+  finally{btn.innerHTML=old;btn.disabled=false;}
+}
+function saveCurrentResult(){ if(!lastGeneratedResult)return; downloadBlob(lastGeneratedResult.blob,lastGeneratedResult.name); saveResultToHistory(lastGeneratedResult); }
+async function shareCurrentResult(){ if(!lastGeneratedResult)return; await shareBlob(lastGeneratedResult.blob,lastGeneratedResult.name); await saveResultToHistory(lastGeneratedResult); }
+async function saveResultToHistory(result){
+  await addHistory({name:result.name,format:result.format,mime:result.mime,size:result.blob.size,blob:result.blob,thumbnail:result.thumbnail,date:Date.now()});
+  await loadHistory();
+}
+
+function openConversionResizeModal(){
+  if(!currentImg || !currentImg.width){showToast('Please select an image first.');return}
+  $('resize-modal').style.display='flex';
+  $('resize-input').value=50;
+  $('resize-modal').dataset.mode='conversion';
+}
+
+async function resizeConversionResult(){
+  const pct=Math.min(100,Math.max(1,Number($('resize-input').value)||50));
+  if(!lastGeneratedResult){showToast('Convert the file first.');return;}
+  const btn=document.querySelector('#resize-modal .primary-btn');
+  btn.disabled=true; btn.textContent='Resizing...';
+  try{
+    const resultBase=lastGeneratedResult;
+    let result;
+    if(resultBase.mime==='application/pdf'){
+      const tempItem={name:resultBase.name,blob:resultBase.blob,mime:'application/pdf'};
+      result=await resizePdfFile(tempItem,pct);
+    }else{
+      const url=URL.createObjectURL(resultBase.blob);
+      const img=await loadImage(url); URL.revokeObjectURL(url);
+      const scale=pct/100;
+      const c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const type=resultBase.mime==='image/png'?'image/png':'image/jpeg';
+      const blob=await canvasBlob(c,type,type==='image/jpeg'?1.0:undefined);
+      const ext=type==='image/png'?'.png':'.jpg';
+      result={name:resultBase.name.replace(/\.[^.]+$/,'')+'_resized_'+pct+'%'+ext,format:type==='image/png'?'PNG':'JPG',mime:type,size:blob.size,blob,thumbnail:makeThumbnail(c),date:Date.now(),width:c.width,height:c.height};
+    }
+    result.beforeSize=resultBase.blob.size;
+    lastGeneratedResult=result;
+    window.currentOriginalSize=resultBase.blob.size;
+    $('result-info').innerHTML='<div class="file-info-row"><strong>Resized</strong><span>'+escapeHtml(result.name)+'</span></div><div class="file-info-row"><strong>Before → After</strong><span>'+formatBytes(resultBase.blob.size)+' → '+formatBytes(result.blob.size)+'</span></div><div class="file-info-row"><strong>Dimensions</strong><span>'+((result.width||0)+' × '+(result.height||0)+' px')+'</span></div>';
+    $('result-info').style.display='block';
+    $('downloadBtn').style.display='flex'; $('shareBtn').style.display=navigator.share?'flex':'none';
+    if(result.format==='PDF'){$('preview').style.display='none';}else{
+      const url2=URL.createObjectURL(result.blob); if(window._conversionPreviewUrl)URL.revokeObjectURL(window._conversionPreviewUrl); window._conversionPreviewUrl=url2; $('preview').src=url2; $('preview').style.display='block';
+    }
+    closeView('resize-modal');
+    showToast('Resized preview ready. Nothing was downloaded.');
+  }catch(err){console.error(err);showToast('Resize failed. Please try again.');}
+  finally{btn.disabled=false;btn.textContent='✨ APPLY RESIZE';}
+}
+
+function openResizeModal(){
+  if(!currentViewerFile){showToast('Open a file first.');return}
+  $('resize-modal').style.display='flex';
+}
+
+let pdfJsPromise=null;
+
+function loadPdfJs(){
+  if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+  if(pdfJsPromise)return pdfJsPromise;
+  pdfJsPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload=()=>{
+      if(!window.pdfjsLib){reject(new Error('PDF engine unavailable.'));return;}
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    script.onerror=()=>reject(new Error('PDF engine could not be loaded.'));
+    document.head.appendChild(script);
+  });
+  return pdfJsPromise;
+}
+
+async function resizePdfFile(item,pct){
+  const pdfjs=await loadPdfJs();
+  const arrayBuffer=await item.blob.arrayBuffer();
+  const pdf=await pdfjs.getDocument({data:arrayBuffer}).promise;
+  if(!pdf.numPages)throw new Error('PDF has no pages.');
+
+  // Any Converter currently creates one-page PDFs. We still process every page
+  // so PDFs from elsewhere also get a useful resized result.
+  const {jsPDF}=window.jspdf;
+  let output=null;
+  const scale=pct/100;
+
+  for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+    const page=await pdf.getPage(pageNo);
+    const baseViewport=page.getViewport({scale:1});
+    const renderScale=Math.max(.25,Math.min(2,scale));
+    const viewport=page.getViewport({scale:renderScale});
+    const c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(viewport.width));
+    c.height=Math.max(1,Math.round(viewport.height));
+    const context=c.getContext('2d',{alpha:false});
+    context.fillStyle='#ffffff';
+    context.fillRect(0,0,c.width,c.height);
+    await page.render({canvasContext:context,viewport}).promise;
+
+    // Keep PDF page dimensions proportional to the resized rendering.
+    const pageW=Math.max(1,baseViewport.width*scale);
+    const pageH=Math.max(1,baseViewport.height*scale);
+    if(!output){
+      output=new jsPDF(pageW>pageH?'l':'p','pt',[pageW,pageH],true);
+    }else{
+      output.addPage([pageW,pageH],pageW>pageH?'l':'p');
+    }
+    const quality=pct<=50?.72:.82;
+    output.addImage(c.toDataURL('image/jpeg',quality),'JPEG',0,0,pageW,pageH,undefined,'FAST');
+  }
+
+  const blob=output.output('blob');
+  return {
+    blob,
+    name:item.name.replace(/\.pdf$/i,'')+'_resized_'+pct+'%.pdf',
+    format:'PDF',mime:'application/pdf',size:blob.size,
+    thumbnail:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=160 height=160><rect width=160 height=160 fill=\"#f0f2f5\"/><text x=80 y=85 text-anchor=\"middle\" font-size=60>📄</text></svg>'),
+    date:Date.now()
+  };
+}
+
+async function applyResize(){
+  if($('resize-modal').dataset.mode==='conversion') {
+    await resizeConversionResult();
+    delete $('resize-modal').dataset.mode;
+    return;
+  }
+  if(!currentViewerFile)return;
+  const pct=Math.min(100,Math.max(1,Number($('resize-input').value)||50));
+  const btn=document.querySelector('#resize-modal .primary-btn');
+  btn.disabled=true;
+  btn.textContent=currentViewerFile.mime==='application/pdf'?'Compressing PDF...':'Resizing...';
+  try{
+    let newItem;
+
+    if(currentViewerFile.mime==='application/pdf'){
+      newItem=await resizePdfFile(currentViewerFile,pct);
+    }else{
+      const url=URL.createObjectURL(currentViewerFile.blob);
+      const img=await loadImage(url);
+      URL.revokeObjectURL(url);
+      const scale=pct/100;
+      const c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.width*scale));
+      c.height=Math.max(1,Math.round(img.height*scale));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const type=currentViewerFile.mime==='image/png'?'image/png':'image/jpeg';
+      const blob=await canvasBlob(c,type,type==='image/jpeg'?1.0:undefined);
+      const ext=type==='image/png'?'.png':'.jpg';
+      newItem={name:currentViewerFile.name.replace(/\.[^.]+$/,'')+'_resized_'+pct+'%'+ext,format:type==='image/png'?'PNG':'JPG',mime:type,size:blob.size,blob,thumbnail:makeThumbnail(c),date:Date.now()};
+    }
+
+    await addHistory(newItem);
+    closeView('resize-modal');
+    await loadHistory();
+    showToast('Resized file saved to Recent Files.');
+  }catch(err){
+    console.error(err);
+    showToast(currentViewerFile.mime==='application/pdf'?'PDF resize failed. Check your internet connection and try again.':'Resize failed.');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='✨ APPLY RESIZE';
+  }
+}
+
+function openRenameModal(item){
+  window.renameTargetId=item.id;
+  $('rename-input').value=item.name.replace(/\.[^.]+$/,'');
+  $('rename-modal').style.display='flex';
+  setTimeout(()=>{ $('rename-input').focus(); $('rename-input').select(); },50);
+}
+function renameFromViewer(){ if(currentViewerFile) openRenameModal(currentViewerFile); }
+async function applyRename(){
+  const id=window.renameTargetId;
+  const input=$('rename-input').value.trim();
+  if(!id || !input){showToast('Enter a file name.');return;}
+  const item=await getHistory(id);
+  if(!item)return;
+  const ext=(item.name.match(/(\.[^.]+)$/)||['',''])[1];
+  const base=input.replace(/\.[^.]+$/,'').trim();
+  if(!base){showToast('Enter a valid file name.');return;}
+  item.name=base+ext;
+  await updateHistory(item);
+  if(currentViewerFile && Number(currentViewerFile.id)===Number(id)) currentViewerFile=item;
+  closeView('rename-modal');
+  await loadHistory();
+  if($('pdf-view-name'))$('pdf-view-name').textContent=item.name;
+  showToast('File renamed successfully.');
+}
+
+async function shareFromViewer(){
+  if(!currentViewerFile)return;
+  await shareBlob(currentViewerFile.blob,currentViewerFile.name);
+}
+
+async function deleteFromViewer(){
+  if(!currentActiveItemId)return;
+  if(!confirm('Delete this file from Recent Files?'))return;
+  await deleteHistory(currentActiveItemId);
+  closeView('file-viewer-view');
+  await loadHistory();
+  showToast('File deleted.');
+}
+
+window.addEventListener('load',async()=>{
+  try{
+    await openDatabase();
+    await loadHistory();
+  }catch(err){
+    console.error(err);
+    showToast('Storage could not be initialized.');
+  }
+  setTimeout(()=>{
+    const splash=$('splash-screen');
+    splash.style.opacity='0';
+    setTimeout(()=>splash.style.display='none',450);
+  },700);
+  if(!navigator.share)$('shareBtn').style.display='none';
+});
+
+$('fileInput').addEventListener('change',handleFileSelection);
+$('fileBrowser').addEventListener('change',handleFileSelection);
+$('cameraInput').addEventListener('change',handleFileSelection);
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.history-item')){
+    document.querySelectorAll('.menu-dropdown.show').forEach(x=>x.classList.remove('show'));
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && selectedHistoryIds.size) clearSelection();
+});
+</script>
+</body>
+</html>
